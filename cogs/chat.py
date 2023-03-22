@@ -81,7 +81,7 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=query, description='')
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google')
+        embed.set_footer(text='Google Search', icon_url='https://lh3.googleusercontent.com/COxitqgJr1sJnIDe8-jiKhxDx1FrYbtRHKJ9z_hELisAlapwE9LUPh6fcXIfb5vwpbMl4xl9H9TRFPc5NOO8Sb3VSgIBrfRYvW6cUA')
         embed_id = await ctx.send(embed=embed)
 
         count = int(count)
@@ -92,7 +92,7 @@ class Chat(commands.Cog, name='Chat'):
             if engine == 'g':
                 ## unofficial google search api
                 for i, url in enumerate(search(query, num_results=count, lang='ja')):
-                    embed.title = f'[🔍({i+1}/{count})] '+query
+                    embed.title = f'[🔍 ({i+1}/{count})] '+query
                     http = urllib3.PoolManager()
                     soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
                     try:
@@ -110,7 +110,7 @@ class Chat(commands.Cog, name='Chat'):
 
                 ## official google search api
                 #for i, result in enumerate(self.customsearch.cse().list(q=query, cx=self.customsearch_id, num=count).execute()['items']):
-                #    embed.title = f'[🔍({i}/{count})] '+query
+                #    embed.title = f'[🔍 ({i}/{count})] '+query
                 #    embed.description += f'・[{result["title"]}]({result["link"]})\n'
                 ## end
         except Exception as e:
@@ -127,7 +127,7 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google')
+        embed.set_footer(text='Google Translate', icon_url='https://storage.googleapis.com/gweb-uniblog-publish-prod/original_images/logo_translate_color_2x_web_512dp.png')
         embed_id = await ctx.send(embed=embed)
 
         try:
@@ -144,6 +144,16 @@ class Chat(commands.Cog, name='Chat'):
             embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
         finally:
             await embed_id.edit(embed=embed)
+
+    @commands.hybrid_command(name='map', aliases=['m'], description='map')
+    async def map(self, ctx: commands.Context, query: str, engine: str='g') -> None:
+        pass
+        'https://lh3.googleusercontent.com/V0Lu6YzAVaCVcjSJ_4Qb0mR_idw-GApETGbkodvDKTH-rpDvHuD6J84jshR_FvXdl5mJxqbIHVdebYCCbQMJNxIxRaIHYFSq6z7laA'
+
+    @commands.hybrid_command(name='news', aliases=['n'], description='news')
+    async def news(self, ctx: commands.Context, query: str, engine: str='g') -> None:
+        pass
+        'https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q'
 
 
 async def setup(bot):
