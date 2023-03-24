@@ -20,7 +20,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def setup_hook(self):
+    async def setup_hook(self) -> None:
         for extension in EXTENSIONS:
             try:
                 await self.load_extension(extension)

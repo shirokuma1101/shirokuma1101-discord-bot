@@ -4,6 +4,8 @@
 import configparser
 import time
 import urllib3
+import re
+import requests
 
 # discord
 import discord
@@ -78,15 +80,15 @@ class Chat(commands.Cog, name='Chat'):
 
     @commands.hybrid_command(name='search', aliases=['s'], description='search')
     async def search(self, ctx: commands.Context, query: str, count: int=1, engine: str='g') -> None:
+        count = int(count)
+        if  count > self.SEARCH_MAX:
+            count = self.SEARCH_MAX
+
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=query, description='')
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
         embed.set_footer(text='Google Search', icon_url='https://lh3.googleusercontent.com/COxitqgJr1sJnIDe8-jiKhxDx1FrYbtRHKJ9z_hELisAlapwE9LUPh6fcXIfb5vwpbMl4xl9H9TRFPc5NOO8Sb3VSgIBrfRYvW6cUA')
         embed_id = await ctx.send(embed=embed)
-
-        count = int(count)
-        if  count > self.SEARCH_MAX:
-            count = self.SEARCH_MAX
 
         try:
             if engine == 'g':
@@ -113,6 +115,8 @@ class Chat(commands.Cog, name='Chat'):
                 #    embed.title = f'[🔍 ({i}/{count})] '+query
                 #    embed.description += f'・[{result["title"]}]({result["link"]})\n'
                 ## end
+            else:
+                embed.description = 'The search engine is not supported.'
         except Exception as e:
             print(e)
             embed.title = '[❌] '+query
@@ -122,7 +126,7 @@ class Chat(commands.Cog, name='Chat'):
         finally:
             await embed_id.edit(embed=embed)
 
-    @commands.hybrid_command(name='translate', aliases=['t'], description='translate')
+    @commands.hybrid_command(name='translate', aliases=['tl'], description='translate')
     async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='en', engine: str='g') -> None:
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
@@ -137,6 +141,8 @@ class Chat(commands.Cog, name='Chat'):
                 embed.title = '[🌐] '+message
                 embed.description = result.text
                 ## end
+            else:
+                embed.description = 'The translation engine is not supported.'
         except Exception as e:
             embed.title = '[❌] '+message
             embed.description = 'The translation could not be found or there may have been an internal error.'
@@ -150,12 +156,41 @@ class Chat(commands.Cog, name='Chat'):
         pass
         'https://lh3.googleusercontent.com/V0Lu6YzAVaCVcjSJ_4Qb0mR_idw-GApETGbkodvDKTH-rpDvHuD6J84jshR_FvXdl5mJxqbIHVdebYCCbQMJNxIxRaIHYFSq6z7laA'
 
+    @commands.hybrid_command(name='topic', aliases=['t'], description='topic')
+    async def topic(self, ctx: commands.Context, lang='jp', engine: str='y') -> None:
+        topics = []
+        await ctx.defer()
+        embed = discord.Embed(color=0x000000, title='Getting news...', description='')
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        embed_id = await ctx.send(embed=embed)
+        try:
+            if engine == 'g' and lang == 'jp':
+                embed.set_footer(text='Google News', icon_url='https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q')
+            elif engine == 'y' and lang == 'jp':
+                embed.set_footer(text='Yahoo! News', icon_url='https://s.yimg.jp/images/top/sp2/cmn/logo-170307.png')
+                ## unofficial yahoo news api
+                res = requests.get('https://www.yahoo.co.jp/')
+                soup = BeautifulSoup(res.text, 'html.parser')
+                for i, news in enumerate(soup.find_all(href=re.compile('news.yahoo.co.jp/pickup'))):
+                    topics.append(f'・[{news.text}]({news["href"]})')
+                    await embed_id.edit(embed=embed)
+                ## end
+            else:
+                embed.description = 'The news engine is not supported.'
+        except Exception as e:
+            embed.title = '[❌] '
+            embed.description = 'The news could not be found or there may have been an internal error.'
+        else:
+            embed.title = f'[✅ ({len(topics)})] '
+            embed.description = '\n'.join(topics)
+        finally:
+            await embed_id.edit(embed=embed)
+
     @commands.hybrid_command(name='news', aliases=['n'], description='news')
-    async def news(self, ctx: commands.Context, query: str, engine: str='g') -> None:
+    async def news(self, ctx: commands.Context, lang='jp', query: str='', engine: str='y') -> None:
         pass
-        'https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q'
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Chat(bot))
 
