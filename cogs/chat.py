@@ -31,6 +31,14 @@ class Chat(commands.Cog, name='Chat'):
         super().__init__()
         self.bot = bot
 
+        # icons
+        self.ICON_OPENAI = 'https://cdn.discordapp.com/avatars/1046280307462123561/ed2bda6bcbe4264c19a51663adcae15b.webp'
+        self.ICON_GOOGLE = 'https://lh3.googleusercontent.com/COxitqgJr1sJnIDe8-jiKhxDx1FrYbtRHKJ9z_hELisAlapwE9LUPh6fcXIfb5vwpbMl4xl9H9TRFPc5NOO8Sb3VSgIBrfRYvW6cUA'
+        self.ICON_GOOGLEMAP = 'https://lh3.googleusercontent.com/V0Lu6YzAVaCVcjSJ_4Qb0mR_idw-GApETGbkodvDKTH-rpDvHuD6J84jshR_FvXdl5mJxqbIHVdebYCCbQMJNxIxRaIHYFSq6z7laA'
+        self.ICON_GOOGLENEWS = 'https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q'
+        self.ICON_GOOGLETRANS = 'https://storage.googleapis.com/gweb-uniblog-publish-prod/original_images/logo_translate_color_2x_web_512dp.png'
+        self.ICON_YAHOO = 'https://s.yimg.jp/images/top/sp2/cmn/logo-170307.png'
+
         # read config
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -58,7 +66,7 @@ class Chat(commands.Cog, name='Chat'):
         embed = discord.Embed(color=0x7ea79c, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
         if engine == 'c3.5':
-            embed.set_footer(text='GPT-3.5 architecture based ChatGPT', icon_url='https://cdn.discordapp.com/avatars/1046280307462123561/ed2bda6bcbe4264c19a51663adcae15b.webp')
+            embed.set_footer(text='GPT-3.5 architecture based ChatGPT', icon_url=self.ICON_OPENAI)
         embed_id = await ctx.send(embed=embed)
 
         try:
@@ -78,6 +86,15 @@ class Chat(commands.Cog, name='Chat'):
         finally:
             await embed_id.edit(embed=embed)
 
+    @commands.hybrid_command(name='map', aliases=['m'], description='map')
+    async def map(self, ctx: commands.Context, query: str, engine: str='g') -> None:
+        pass
+
+
+    @commands.hybrid_command(name='news', aliases=['n'], description='news')
+    async def news(self, ctx: commands.Context, lang='jp', query: str='', engine: str='y') -> None:
+        pass
+
     @commands.hybrid_command(name='search', aliases=['s'], description='search')
     async def search(self, ctx: commands.Context, query: str, count: int=1, engine: str='g') -> None:
         count = int(count)
@@ -87,7 +104,7 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=query, description='')
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google Search', icon_url='https://lh3.googleusercontent.com/COxitqgJr1sJnIDe8-jiKhxDx1FrYbtRHKJ9z_hELisAlapwE9LUPh6fcXIfb5vwpbMl4xl9H9TRFPc5NOO8Sb3VSgIBrfRYvW6cUA')
+        embed.set_footer(text='Google Search', icon_url=self.ICON_GOOGLE)
         embed_id = await ctx.send(embed=embed)
 
         try:
@@ -126,36 +143,6 @@ class Chat(commands.Cog, name='Chat'):
         finally:
             await embed_id.edit(embed=embed)
 
-    @commands.hybrid_command(name='translate', aliases=['tl'], description='translate')
-    async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='en', engine: str='g') -> None:
-        await ctx.defer()
-        embed = discord.Embed(color=0x000000, title=message, description="...")
-        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google Translate', icon_url='https://storage.googleapis.com/gweb-uniblog-publish-prod/original_images/logo_translate_color_2x_web_512dp.png')
-        embed_id = await ctx.send(embed=embed)
-
-        try:
-            if engine == 'g':
-                ## unofficial google translate api
-                result = self.translator.translate(message, dest=dest, src=src)
-                embed.title = '[🌐] '+message
-                embed.description = result.text
-                ## end
-            else:
-                embed.description = 'The translation engine is not supported.'
-        except Exception as e:
-            embed.title = '[❌] '+message
-            embed.description = 'The translation could not be found or there may have been an internal error.'
-        else:
-            embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
-        finally:
-            await embed_id.edit(embed=embed)
-
-    @commands.hybrid_command(name='map', aliases=['m'], description='map')
-    async def map(self, ctx: commands.Context, query: str, engine: str='g') -> None:
-        pass
-        'https://lh3.googleusercontent.com/V0Lu6YzAVaCVcjSJ_4Qb0mR_idw-GApETGbkodvDKTH-rpDvHuD6J84jshR_FvXdl5mJxqbIHVdebYCCbQMJNxIxRaIHYFSq6z7laA'
-
     @commands.hybrid_command(name='topic', aliases=['t'], description='topic')
     async def topic(self, ctx: commands.Context, lang='jp', engine: str='y') -> None:
         topics = []
@@ -165,9 +152,9 @@ class Chat(commands.Cog, name='Chat'):
         embed_id = await ctx.send(embed=embed)
         try:
             if engine == 'g' and lang == 'jp':
-                embed.set_footer(text='Google News', icon_url='https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q')
+                embed.set_footer(text='Google News', icon_url=self.ICON_GOOGLENEWS)
             elif engine == 'y' and lang == 'jp':
-                embed.set_footer(text='Yahoo! News', icon_url='https://s.yimg.jp/images/top/sp2/cmn/logo-170307.png')
+                embed.set_footer(text='Yahoo! News', icon_url=self.ICON_YAHOO)
                 ## unofficial yahoo news api
                 res = requests.get('https://www.yahoo.co.jp/')
                 soup = BeautifulSoup(res.text, 'html.parser')
@@ -186,9 +173,30 @@ class Chat(commands.Cog, name='Chat'):
         finally:
             await embed_id.edit(embed=embed)
 
-    @commands.hybrid_command(name='news', aliases=['n'], description='news')
-    async def news(self, ctx: commands.Context, lang='jp', query: str='', engine: str='y') -> None:
-        pass
+    @commands.hybrid_command(name='translate', aliases=['tl'], description='translate')
+    async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='en', engine: str='g') -> None:
+        await ctx.defer()
+        embed = discord.Embed(color=0x000000, title=message, description="...")
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
+        embed_id = await ctx.send(embed=embed)
+
+        try:
+            if engine == 'g':
+                ## unofficial google translate api
+                result = self.translator.translate(message, dest=dest, src=src)
+                embed.title = '[🌐] '+message
+                embed.description = result.text
+                ## end
+            else:
+                embed.description = 'The translation engine is not supported.'
+        except Exception as e:
+            embed.title = '[❌] '+message
+            embed.description = 'The translation could not be found or there may have been an internal error.'
+        else:
+            embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
+        finally:
+            await embed_id.edit(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:
