@@ -56,6 +56,10 @@ class Chat(commands.Cog, name='Chat'):
         else:
             return True
 
+    @commands.hybrid_command(name='help', aliases=['h'], description='help')
+    async def help(self, ctx: commands.Context) -> None:
+        pass
+
     @commands.hybrid_command(name='ping', aliases=['p'], description='pong')
     async def ping(self, ctx: commands.Context) -> None:
         await ctx.send('pong')
