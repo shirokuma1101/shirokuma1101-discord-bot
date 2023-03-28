@@ -3,7 +3,6 @@
 # standard
 import configparser
 import sys
-import traceback
 
 # discord
 import discord
@@ -25,8 +24,7 @@ class Bot(commands.Bot):
             try:
                 await self.load_extension(extension)
             except Exception as e:
-                print(f'Failed to load extension {extension}.', file=sys.stderr)
-                traceback.print_exc()
+                print(f'Failed to load extension {extension}.: {e}')
 
         await self.tree.sync()
 
