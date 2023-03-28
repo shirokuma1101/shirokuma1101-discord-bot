@@ -31,34 +31,42 @@ class Chat(commands.Cog, name='Chat'):
         super().__init__()
         self.bot = bot
 
-        # icons
-        self.ICON_OPENAI = 'https://cdn.discordapp.com/avatars/1046280307462123561/ed2bda6bcbe4264c19a51663adcae15b.webp'
-        self.ICON_GOOGLE = 'https://lh3.googleusercontent.com/COxitqgJr1sJnIDe8-jiKhxDx1FrYbtRHKJ9z_hELisAlapwE9LUPh6fcXIfb5vwpbMl4xl9H9TRFPc5NOO8Sb3VSgIBrfRYvW6cUA'
-        self.ICON_GOOGLEMAP = 'https://lh3.googleusercontent.com/V0Lu6YzAVaCVcjSJ_4Qb0mR_idw-GApETGbkodvDKTH-rpDvHuD6J84jshR_FvXdl5mJxqbIHVdebYCCbQMJNxIxRaIHYFSq6z7laA'
-        self.ICON_GOOGLENEWS = 'https://lh3.googleusercontent.com/9agKA1CG--ihx80qoPwq8xVFZ0i0_nEyLpXlcf8juPbFXe13GhUBR7Y5xOO3LVfnmM06OtrWw086uFlQ9s5jNPlvXJNBQViCvB4L4Q'
-        self.ICON_GOOGLETRANS = 'https://storage.googleapis.com/gweb-uniblog-publish-prod/original_images/logo_translate_color_2x_web_512dp.png'
-        self.ICON_YAHOO = 'https://s.yimg.jp/images/top/sp2/cmn/logo-170307.png'
-
         # read config
         config = configparser.ConfigParser()
         config.read('config.ini')
-        # openai
-        self.chatbot = Chatbot(config={'email': config['OPENAI']['email'], 'password': config['OPENAI']['password']})
+
+        # icons
+        self.ICON_GOOGLE = config['ICON']['google']
+        self.ICON_GOOGLEMAP = config['ICON']['googlemap']
+        self.ICON_GOOGLENEWS = config['ICON']['googlenews']
+        self.ICON_GOOGLETRANS = config['ICON']['googletrans']
+        self.ICON_OPENAI = config['ICON']['openai']
+        self.ICON_YAHOO = config['ICON']['yahoo']
+
         # google
         self.customsearch = build("customsearch", "v1", developerKey=config['GOOGLE']['customsearch_key'])
         self.customsearch_id = config['GOOGLE']['customsearch_id']
         self.SEARCH_MAX = 10
         self.translator = Translator()
+        # openai
+        self.chatbot = Chatbot(config={'email': config['OPENAI']['email'], 'password': config['OPENAI']['password']})
 
-    async def cog_check(self, ctx: commands.Context):
+    async def cog_check(self, ctx: commands.Context) -> bool:
         if ctx.author.bot:
             return False
         else:
             return True
 
-    @commands.hybrid_command(name='help', aliases=['h'], description='help')
+    @commands.hybrid_command(name='help_', aliases=['h_'], description='help')
     async def help(self, ctx: commands.Context) -> None:
-        pass
+        embed = discord.Embed(color=0x000000, title='Help', description='This is a help message.')
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        embed.add_field(name='ping', value='pong', inline=False)
+        embed.add_field(name='askai', value='ask ai', inline=False)
+        embed.add_field(name='map', value='map', inline=False)
+        embed.add_field(name='news', value='news', inline=False)
+        embed.add_field(name='search', value='search', inline=False)
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='ping', aliases=['p'], description='pong')
     async def ping(self, ctx: commands.Context) -> None:
@@ -67,24 +75,33 @@ class Chat(commands.Cog, name='Chat'):
     @commands.hybrid_command(name='askai', aliases=['ai'], description='ask ai')
     async def askai(self, ctx: commands.Context, message: str, engine: str='c3.5') -> None:
         await ctx.defer()
-        embed = discord.Embed(color=0x7ea79c, title=message, description="...")
+        embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        if engine == 'c3.5':
-            embed.set_footer(text='GPT-3.5 architecture based ChatGPT', icon_url=self.ICON_OPENAI)
         embed_id = await ctx.send(embed=embed)
 
         try:
-            elapsed_time = time.time()
-            for data in self.chatbot.ask(message):
-                embed.title = '[💬] '+message
-                embed.description = data["message"]
-                # update every 1 sec.
-                if time.time() - elapsed_time > 1:
+            if engine == 'c3.5':
+                embed.color = 0x7ea79c
+                embed.set_footer(text='GPT-3.5 architecture based ChatGPT', icon_url=self.ICON_OPENAI)
+
+                try:
+                    ## unofficial chatgpt api
                     elapsed_time = time.time()
-                    await embed_id.edit(embed=embed)
+                    for data in self.chatbot.ask(message):
+                        embed.title = '[💬] '+message
+                        embed.description = data["message"]
+                        # update every 1 sec.
+                        if time.time() - elapsed_time > 1:
+                            elapsed_time = time.time()
+                            await embed_id.edit(embed=embed)
+                    ## end
+                except Exception as e:
+                    raise Exception(e)
+            else:
+                raise Exception('Invalid engine. Please use "c3.5".')
         except Exception as e:
             embed.title = '[❌] '+message
-            embed.description = 'The answer could not be found or there may have been an internal error.'
+            embed.description = f'Internal error: {e}'
         else:
             embed.title = '[✅] '+message
         finally:
@@ -93,7 +110,6 @@ class Chat(commands.Cog, name='Chat'):
     @commands.hybrid_command(name='map', aliases=['m'], description='map')
     async def map(self, ctx: commands.Context, query: str, engine: str='g') -> None:
         pass
-
 
     @commands.hybrid_command(name='news', aliases=['n'], description='news')
     async def news(self, ctx: commands.Context, lang='jp', query: str='', engine: str='y') -> None:
@@ -108,40 +124,43 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=query, description='')
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google Search', icon_url=self.ICON_GOOGLE)
         embed_id = await ctx.send(embed=embed)
 
         try:
             if engine == 'g':
-                ## unofficial google search api
-                for i, url in enumerate(search(query, num_results=count, lang='ja')):
-                    embed.title = f'[🔍 ({i+1}/{count})] '+query
-                    http = urllib3.PoolManager()
-                    soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
-                    try:
-                        title = soup.find('title').text
-                    except:
-                        pass
-                    else:
-                        embed.description += f'・[{title}]({url})\n'
-                        await embed_id.edit(embed=embed)
+                embed.set_footer(text='Google Search', icon_url=self.ICON_GOOGLE)
 
-                    # search function returns more than 1 result when num_results is 1
-                    if i == count-1:
-                        break
-                ## end
+                try:
+                    ## official google search api
+                    #for i, result in enumerate(self.customsearch.cse().list(q=query, cx=self.customsearch_id, num=count).execute()['items']):
+                    #    embed.title = f'[🔍 ({i}/{count})] '+query
+                    #    embed.description += f'・[{result["title"]}]({result["link"]})\n'
+                    ## end
 
-                ## official google search api
-                #for i, result in enumerate(self.customsearch.cse().list(q=query, cx=self.customsearch_id, num=count).execute()['items']):
-                #    embed.title = f'[🔍 ({i}/{count})] '+query
-                #    embed.description += f'・[{result["title"]}]({result["link"]})\n'
-                ## end
+                    ## unofficial google search api
+                    for i, url in enumerate(search(query, num_results=count, lang='ja')):
+                        embed.title = f'[🔍 ({i+1}/{count})] '+query
+                        http = urllib3.PoolManager()
+                        soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
+                        try:
+                            title = soup.find('title').text
+                        except:
+                            pass
+                        else:
+                            embed.description += f'・[{title}]({url})\n'
+                            await embed_id.edit(embed=embed)
+
+                        # search function returns more than 1 result when num_results is 1
+                        if i == count-1:
+                            break
+                    ## end
+                except Exception as e:
+                    raise Exception(e)
             else:
-                embed.description = 'The search engine is not supported.'
+                raise Exception('Invalid engine. Please use "g."')
         except Exception as e:
-            print(e)
             embed.title = '[❌] '+query
-            embed.description = 'The search could not be found or there may have been an internal error.'
+            embed.description = f'Internal error: {e}'
         else:
             embed.title = f'[✅ ({count})] '+query
         finally:
@@ -154,6 +173,7 @@ class Chat(commands.Cog, name='Chat'):
         embed = discord.Embed(color=0x000000, title='Getting news...', description='')
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
         embed_id = await ctx.send(embed=embed)
+
         try:
             if engine == 'g' and lang == 'jp':
                 embed.set_footer(text='Google News', icon_url=self.ICON_GOOGLENEWS)
@@ -167,10 +187,10 @@ class Chat(commands.Cog, name='Chat'):
                     await embed_id.edit(embed=embed)
                 ## end
             else:
-                embed.description = 'The news engine is not supported.'
+                raise Exception('Invalid engine or language. Please use "g" or "y" for engine and "jp" for language.')
         except Exception as e:
             embed.title = '[❌] '
-            embed.description = 'The news could not be found or there may have been an internal error.'
+            embed.description = f'Internal error: {e}'
         else:
             embed.title = f'[✅ ({len(topics)})] '
             embed.description = '\n'.join(topics)
@@ -182,21 +202,22 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
         embed_id = await ctx.send(embed=embed)
 
         try:
             if engine == 'g':
+                embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
+
                 ## unofficial google translate api
                 result = self.translator.translate(message, dest=dest, src=src)
                 embed.title = '[🌐] '+message
                 embed.description = result.text
                 ## end
             else:
-                embed.description = 'The translation engine is not supported.'
+                raise Exception('Invalid engine. Please use "g."')
         except Exception as e:
             embed.title = '[❌] '+message
-            embed.description = 'The translation could not be found or there may have been an internal error.'
+            embed.description = f'Internal error: {e}'
         else:
             embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
         finally:
