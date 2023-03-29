@@ -7,20 +7,23 @@ import urllib3
 import re
 import requests
 
+# bs4
+from bs4 import BeautifulSoup
+
 # discord
 import discord
 from discord.ext import commands
 
-# bs4
-from bs4 import BeautifulSoup
+# deepl
+import deepl
 
 # google
 # official google search api
 from googleapiclient.discovery import build
 # unofficial google search api
-from googlesearch import search
+import googlesearch
 # unofficial google translate api
-from googletrans import Translator
+import googletrans
 
 # unofficial chatgpt api
 from revChatGPT.V1 import Chatbot
@@ -36,6 +39,7 @@ class Chat(commands.Cog, name='Chat'):
         config.read('config.ini')
 
         # icons
+        self.ICON_DEEPL = config['ICON']['deepl']
         self.ICON_GOOGLE = config['ICON']['google']
         self.ICON_GOOGLEMAP = config['ICON']['googlemap']
         self.ICON_GOOGLENEWS = config['ICON']['googlenews']
@@ -43,11 +47,13 @@ class Chat(commands.Cog, name='Chat'):
         self.ICON_OPENAI = config['ICON']['openai']
         self.ICON_YAHOO = config['ICON']['yahoo']
 
+        # deepl
+        self.deepl = deepl.Translator(config['DEEPL']['key'])
         # google
         self.customsearch = build("customsearch", "v1", developerKey=config['GOOGLE']['customsearch_key'])
         self.customsearch_id = config['GOOGLE']['customsearch_id']
         self.SEARCH_MAX = 10
-        self.translator = Translator()
+        self.googletrans = googletrans.Translator()
         # openai
         self.chatbot = Chatbot(config={'email': config['OPENAI']['email'], 'password': config['OPENAI']['password']})
 
@@ -138,7 +144,7 @@ class Chat(commands.Cog, name='Chat'):
                     ## end
 
                     ## unofficial google search api
-                    for i, url in enumerate(search(query, num_results=count, lang='ja')):
+                    for i, url in enumerate(googlesearch.search(query, num_results=count, lang='ja')):
                         embed.title = f'[🔍 ({i+1}/{count})] '+query
                         http = urllib3.PoolManager()
                         soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
@@ -205,13 +211,18 @@ class Chat(commands.Cog, name='Chat'):
         embed_id = await ctx.send(embed=embed)
 
         try:
+            if engine == 'd':
+                embed.set_footer(text='DeepL', icon_url=self.ICON_DEEPL)
+
+                ## official deepl api
+                result = self.deepl.translate_text(text=message, source_lang=src, target_lang=dest)
+                ## end
+
             if engine == 'g':
                 embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
 
                 ## unofficial google translate api
-                result = self.translator.translate(message, dest=dest, src=src)
-                embed.title = '[🌐] '+message
-                embed.description = result.text
+                result = self.googletrans.translate(text=message, dest=dest, src=src)
                 ## end
             else:
                 raise Exception('Invalid engine. Please use "g."')
@@ -220,6 +231,7 @@ class Chat(commands.Cog, name='Chat'):
             embed.description = f'Internal error: {e}'
         else:
             embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
+            embed.description = result.text
         finally:
             await embed_id.edit(embed=embed)
 
