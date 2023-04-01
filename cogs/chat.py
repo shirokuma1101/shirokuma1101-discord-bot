@@ -28,6 +28,7 @@ import googletrans
 # unofficial chatgpt api
 from revChatGPT.V1 import Chatbot
 
+
 class Chat(commands.Cog, name='Chat'):
 
     def __init__(self, bot: commands.Bot):
@@ -36,8 +37,14 @@ class Chat(commands.Cog, name='Chat'):
 
         # read config
         config = configparser.ConfigParser()
-        config.read('config.ini')
-
+        config.read('bot.ini')
+        # settings
+        self.PREFIX = config['SETTING']['prefix']
+        self.USERAGENT = config['SETTING']['useragent']
+        self.USE_DEEPL_OFFICIAL_API = config['SETTING'].getboolean('use_deepl_official_api')
+        self.USE_GOOGLESEARCH_OFFICIAL_API = config['SETTING'].getboolean('use_googlesearch_official_api')
+        self.USE_GOOGLETRANS_OFFICIAL_API = config['SETTING'].getboolean('use_googletrans_official_api')
+        self.USE_OPENAI_OFFICIAL_API = config['SETTING'].getboolean('use_openai_official_api')
         # icons
         self.ICON_DEEPL = config['ICON']['deepl']
         self.ICON_GOOGLE = config['ICON']['google']
@@ -46,16 +53,14 @@ class Chat(commands.Cog, name='Chat'):
         self.ICON_GOOGLETRANS = config['ICON']['googletrans']
         self.ICON_OPENAI = config['ICON']['openai']
         self.ICON_YAHOO = config['ICON']['yahoo']
+        # keys
+        self.DEEPL_KEY = deepl.Translator(config['key']['deepl_key'])
+        self.GOOGLESEARCH_ID = config['key']['google_customsearch_id']
 
-        # deepl
-        self.deepl = deepl.Translator(config['DEEPL']['key'])
-        # google
-        self.customsearch = build("customsearch", "v1", developerKey=config['GOOGLE']['customsearch_key'])
-        self.customsearch_id = config['GOOGLE']['customsearch_id']
         self.SEARCH_MAX = 10
+        self.chatbot = Chatbot(config={'email': config['KEY']['openai_email'], 'password': config['KEY']['openai_password']})
+        self.customsearch = build("customsearch", "v1", developerKey=config['GOOGLE']['google_customsearch_key'])
         self.googletrans = googletrans.Translator()
-        # openai
-        self.chatbot = Chatbot(config={'email': config['OPENAI']['email'], 'password': config['OPENAI']['password']})
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         if ctx.author.bot:
@@ -91,16 +96,17 @@ class Chat(commands.Cog, name='Chat'):
                 embed.set_footer(text='GPT-3.5 architecture based ChatGPT', icon_url=self.ICON_OPENAI)
 
                 try:
-                    ## unofficial chatgpt api
-                    elapsed_time = time.time()
-                    for data in self.chatbot.ask(message):
-                        embed.title = '[💬] '+message
-                        embed.description = data["message"]
-                        # update every 1 sec.
-                        if time.time() - elapsed_time > 1:
-                            elapsed_time = time.time()
-                            await embed_id.edit(embed=embed)
-                    ## end
+                    if self.USE_OPENAI_OFFICIAL_API:
+                        pass
+                    else:
+                        elapsed_time = time.time()
+                        for data in self.chatbot.ask(message):
+                            embed.title = '[💬] '+message
+                            embed.description = data["message"]
+                            # update every 1 sec.
+                            if time.time() - elapsed_time > 1:
+                                elapsed_time = time.time()
+                                await embed_id.edit(embed=embed)
                 except Exception as e:
                     raise Exception(e)
             else:
@@ -137,29 +143,25 @@ class Chat(commands.Cog, name='Chat'):
                 embed.set_footer(text='Google Search', icon_url=self.ICON_GOOGLE)
 
                 try:
-                    ## official google search api
-                    #for i, result in enumerate(self.customsearch.cse().list(q=query, cx=self.customsearch_id, num=count).execute()['items']):
-                    #    embed.title = f'[🔍 ({i}/{count})] '+query
-                    #    embed.description += f'・[{result["title"]}]({result["link"]})\n'
-                    ## end
-
-                    ## unofficial google search api
-                    for i, url in enumerate(googlesearch.search(query, num_results=count, lang='ja')):
-                        embed.title = f'[🔍 ({i+1}/{count})] '+query
-                        http = urllib3.PoolManager()
-                        soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
-                        try:
-                            title = soup.find('title').text
-                        except:
-                            pass
-                        else:
-                            embed.description += f'・[{title}]({url})\n'
-                            await embed_id.edit(embed=embed)
-
-                        # search function returns more than 1 result when num_results is 1
-                        if i == count-1:
-                            break
-                    ## end
+                    if self.USE_GOOGLESEARCH_OFFICIAL_API:
+                        for i, result in enumerate(self.customsearch.cse().list(q=query, cx=self.customsearch_id, num=count).execute()['items']):
+                            embed.title = f'[🔍 ({i}/{count})] '+query
+                            embed.description += f'・[{result["title"]}]({result["link"]})\n'
+                    else:
+                        for i, url in enumerate(googlesearch.search(query, num_results=count, lang='ja')):
+                            embed.title = f'[🔍 ({i+1}/{count})] '+query
+                            http = urllib3.PoolManager()
+                            soup = BeautifulSoup(http.request('GET', url).data, 'html.parser')
+                            try:
+                                title = soup.find('title').text
+                            except:
+                                pass
+                            else:
+                                embed.description += f'・[{title}]({url})\n'
+                                await embed_id.edit(embed=embed)
+                            # search function returns more than 1 result when num_results is 1
+                            if i == count-1:
+                                break
                 except Exception as e:
                     raise Exception(e)
             else:
@@ -186,7 +188,7 @@ class Chat(commands.Cog, name='Chat'):
             elif engine == 'y' and lang == 'jp':
                 embed.set_footer(text='Yahoo! News', icon_url=self.ICON_YAHOO)
                 ## unofficial yahoo news api
-                res = requests.get('https://www.yahoo.co.jp/')
+                res = requests.get('https://www.yahoo.co.jp/', headers={'User-Agent': self.USERAGENT})
                 soup = BeautifulSoup(res.text, 'html.parser')
                 for i, news in enumerate(soup.find_all(href=re.compile('news.yahoo.co.jp/pickup'))):
                     topics.append(f'・[{news.text}]({news["href"]})')
@@ -214,16 +216,17 @@ class Chat(commands.Cog, name='Chat'):
             if engine == 'd':
                 embed.set_footer(text='DeepL', icon_url=self.ICON_DEEPL)
 
-                ## official deepl api
-                result = self.deepl.translate_text(text=message, source_lang=src, target_lang=dest)
-                ## end
-
+                if self.USE_DEEPL_OFFICIAL_API:
+                    result = self.deepl.translate_text(text=message, source_lang=src, target_lang=dest)
+                else:
+                    pass
             if engine == 'g':
                 embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
 
-                ## unofficial google translate api
-                result = self.googletrans.translate(text=message, dest=dest, src=src)
-                ## end
+                if self.USE_GOOGLETRANS_OFFICIAL_API:
+                    pass
+                else:
+                    result = self.googletrans.translate(text=message, dest=dest, src=src)
             else:
                 raise Exception('Invalid engine. Please use "g."')
         except Exception as e:
