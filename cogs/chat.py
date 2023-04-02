@@ -54,12 +54,15 @@ class Chat(commands.Cog, name='Chat'):
         self.ICON_OPENAI = config['ICON']['openai']
         self.ICON_YAHOO = config['ICON']['yahoo']
         # keys
-        self.DEEPL_KEY = deepl.Translator(config['key']['deepl_key'])
-        self.GOOGLESEARCH_ID = config['key']['google_customsearch_id']
+        self.GOOGLESEARCH_ID = config['KEY']['google_customsearch_id']
 
         self.SEARCH_MAX = 10
-        self.chatbot = Chatbot(config={'email': config['KEY']['openai_email'], 'password': config['KEY']['openai_password']})
-        self.customsearch = build("customsearch", "v1", developerKey=config['GOOGLE']['google_customsearch_key'])
+        self.deepl = deepl.Translator(config['KEY']['deepl_key'])
+        # openai email and password auth is unavailable
+        #self.chatbot = Chatbot(config={'email': config['KEY']['openai_email'], 'password': config['KEY']['openai_password']})
+        #self.chatbot = Chatbot(config={'session_token': config['KEY']['openai_session_token']})
+        self.chatbot = Chatbot(config={'access_token': config['KEY']['openai_access_token']})
+        self.customsearch = build("customsearch", "v1", developerKey=config['KEY']['google_customsearch_key'])
         self.googletrans = googletrans.Translator()
 
     async def cog_check(self, ctx: commands.Context) -> bool:
@@ -206,7 +209,7 @@ class Chat(commands.Cog, name='Chat'):
             await embed_id.edit(embed=embed)
 
     @commands.hybrid_command(name='translate', aliases=['tl'], description='translate')
-    async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='en', engine: str='g') -> None:
+    async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='ja', engine: str='g') -> None:
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
@@ -218,22 +221,23 @@ class Chat(commands.Cog, name='Chat'):
 
                 if self.USE_DEEPL_OFFICIAL_API:
                     result = self.deepl.translate_text(text=message, source_lang=src, target_lang=dest)
+                    embed.title = f'[✅ ({result.detected_source_lang} -> {dest})] '+message
                 else:
                     pass
-            if engine == 'g':
+            elif engine == 'g':
                 embed.set_footer(text='Google Translate', icon_url=self.ICON_GOOGLETRANS)
 
                 if self.USE_GOOGLETRANS_OFFICIAL_API:
                     pass
                 else:
                     result = self.googletrans.translate(text=message, dest=dest, src=src)
+                    embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
             else:
-                raise Exception('Invalid engine. Please use "g."')
+                raise Exception('Invalid engine. Please use "g" or "d".')
         except Exception as e:
             embed.title = '[❌] '+message
             embed.description = f'Internal error: {e}'
         else:
-            embed.title = f'[✅ ({result.src} -> {result.dest})] '+message
             embed.description = result.text
         finally:
             await embed_id.edit(embed=embed)
