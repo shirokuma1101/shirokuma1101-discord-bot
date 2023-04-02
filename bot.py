@@ -1,5 +1,3 @@
-# coding: utf-8
-
 # standard
 import argparse
 import configparser
@@ -14,6 +12,7 @@ from discord.ext import commands
 EXTENSIONS = [
     'cogs.chat',
 ]
+
 
 class Bot(commands.Bot):
 
