@@ -1,8 +1,9 @@
 # coding: utf-8
 
 # standard
+import argparse
 import configparser
-import sys
+import os
 
 # discord
 import discord
@@ -31,10 +32,20 @@ class Bot(commands.Bot):
 
 def main():
 
+    # parse args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', default='bot.ini', type=str, help='config file')
+    args = parser.parse_args()
+
+    # check args
+    if not os.path.exists(args.config):
+        print(f'config file not found: {args.config}')
+        exit(1)
+
     # read config
     config = configparser.ConfigParser()
-    config.read('config.ini')
-    discord_token = config['DISCORD']['token']
+    config.read(args.config)
+    discord_token = config['SETTING']['token']
 
     # setup intents
     intents = discord.Intents.default()
