@@ -57,8 +57,8 @@ class Chat(commands.Cog, name='Chat'):
         self.SEARCH_MAX = 10
         self.deepl = deepl.Translator(config['KEY']['deepl_key'])
         # openai email and password auth is unavailable
-        #self.chatbot = Chatbot(config={'email': config['KEY']['openai_email'], 'password': config['KEY']['openai_password']})
-        #self.chatbot = Chatbot(config={'session_token': config['KEY']['openai_session_token']})
+        # self.chatbot = Chatbot(config={'email': config['KEY']['openai_email'], 'password': config['KEY']['openai_password']})
+        # self.chatbot = Chatbot(config={'session_token': config['KEY']['openai_session_token']})
         self.chatbot = Chatbot(config={'access_token': config['KEY']['openai_access_token']})
         self.customsearch = build("customsearch", "v1", developerKey=config['KEY']['google_customsearch_key'])
         self.googletrans = googletrans.Translator()
@@ -85,7 +85,7 @@ class Chat(commands.Cog, name='Chat'):
         await ctx.send('pong')
 
     @commands.hybrid_command(name='askai', aliases=['ai'], description='ask ai')
-    async def askai(self, ctx: commands.Context, message: str, engine: str='c3.5') -> None:
+    async def askai(self, ctx: commands.Context, message: str, engine: str = 'c3.5') -> None:
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
@@ -121,17 +121,17 @@ class Chat(commands.Cog, name='Chat'):
             await embed_id.edit(embed=embed)
 
     @commands.hybrid_command(name='map', aliases=['m'], description='map')
-    async def map(self, ctx: commands.Context, query: str, engine: str='g') -> None:
+    async def map(self, ctx: commands.Context, query: str, engine: str = 'g') -> None:
         pass
 
     @commands.hybrid_command(name='news', aliases=['n'], description='news')
-    async def news(self, ctx: commands.Context, lang='jp', query: str='', engine: str='y') -> None:
+    async def news(self, ctx: commands.Context, lang='jp', query: str = '', engine: str = 'y') -> None:
         pass
 
     @commands.hybrid_command(name='search', aliases=['s'], description='search')
-    async def search(self, ctx: commands.Context, query: str, count: int=1, engine: str='g') -> None:
+    async def search(self, ctx: commands.Context, query: str, count: int = 1, engine: str = 'g') -> None:
         count = int(count)
-        if  count > self.SEARCH_MAX:
+        if count > self.SEARCH_MAX:
             count = self.SEARCH_MAX
 
         await ctx.defer()
@@ -176,7 +176,7 @@ class Chat(commands.Cog, name='Chat'):
             await embed_id.edit(embed=embed)
 
     @commands.hybrid_command(name='topic', aliases=['t'], description='topic')
-    async def topic(self, ctx: commands.Context, lang='jp', engine: str='y') -> None:
+    async def topic(self, ctx: commands.Context, lang='jp', engine: str = 'y') -> None:
         topics = []
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title='Getting news...', description='')
@@ -188,13 +188,13 @@ class Chat(commands.Cog, name='Chat'):
                 embed.set_footer(text='Google News', icon_url=self.ICON_GOOGLENEWS)
             elif engine == 'y' and lang == 'jp':
                 embed.set_footer(text='Yahoo! News', icon_url=self.ICON_YAHOO)
-                ## unofficial yahoo news api
+                # unofficial yahoo news api
                 res = requests.get('https://www.yahoo.co.jp/', headers={'User-Agent': self.USERAGENT})
                 soup = BeautifulSoup(res.text, 'html.parser')
                 for i, news in enumerate(soup.find_all(href=re.compile('news.yahoo.co.jp/pickup'))):
                     topics.append(f'・[{news.text}]({news["href"]})')
                     await embed_id.edit(embed=embed)
-                ## end
+                # end
             else:
                 raise Exception('Invalid engine or language. Please use "g" or "y" for engine and "jp" for language.')
         except Exception as e:
@@ -207,7 +207,7 @@ class Chat(commands.Cog, name='Chat'):
             await embed_id.edit(embed=embed)
 
     @commands.hybrid_command(name='translate', aliases=['tl'], description='translate')
-    async def translate(self, ctx: commands.Context, message: str, src: str='auto', dest: str='ja', engine: str='g') -> None:
+    async def translate(self, ctx: commands.Context, message: str, src: str = 'auto', dest: str = 'ja', engine: str = 'g') -> None:
         await ctx.defer()
         embed = discord.Embed(color=0x000000, title=message, description="...")
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
@@ -243,4 +243,3 @@ class Chat(commands.Cog, name='Chat'):
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Chat(bot))
-
